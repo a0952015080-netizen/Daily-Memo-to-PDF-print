@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梧藝營運系統 - 訂單 A4 四模列印產生器</title>
+<!-- 載入 JSZip 解析 Pages 檔案與 html2pdf 匯出 PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif;
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+
+  /* 頂部導航列 */
+  header {
+    background: #0f172a;
+    border-bottom: 1px solid #334155;
+    padding: 16px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-icon {
+    font-size: 26px;
+  }
+  .brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .brand-sub {
+    font-size: 13px;
+    color: #94a3b8;
+  }
+  .top-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn {
+    padding: 9px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 7px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: #e11d48;
+    color: white;
+    box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4);
+  }
+  .btn-primary:hover {
+    background: #be123c;
+  }
+  .btn-secondary {
+    background: #334155;
+    color: #f8fafc;
+  }
+  .btn-secondary:hover {
+    background: #475569;
+  }
+  .btn-success {
+    background: #059669;
+    color: white;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.4);
+  }
+  .btn-success:hover {
+    background: #047857;
+  }
+
+  .main-container {
+    max-width: 1200px;
+    margin: 24px auto;
+    padding: 0 20px;
+  }
+
+  /* 說明提示卡 */
+  .notice-box {
+    background: #0369a1;
+    border-radius: 8px;
+    padding: 12px 18px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #f0f9ff;
+  }
+
+  /* 拖曳與上傳面板 */
+  .input-card {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 28px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  .input-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .input-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  /* 拖曳區塊 */
+  .drop-zone {
+    width: 100%;
+    min-height: 140px;
+    border: 2.5px dashed #38bdf8;
+    border-radius: 10px;
+    background: #1e293b;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    padding: 20px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #0284c7;
+    background: #0f172a;
+    transform: scale(1.005);
+  }
+  .drop-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+  .drop-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f1f5f9;
+  }
+  .drop-sub {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+
+  /* 貼上備用區 */
+  .manual-paste-toggle {
+    margin-top: 16px;
+    color: #38bdf8;
+    font-size: 13.5px;
+    cursor: pointer;
+    text-decoration: underline;
+    display: inline-block;
+  }
+  .paste-area {
+    display: none;
+    width: 100%;
+    min-height: 120px;
+    margin-top: 12px;
+    background: #1e293b;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    padding: 12px;
+    color: #f1f5f9;
+    font-size: 13.5px;
+    outline: none;
+  }
+
+  .action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 18px;
+  }
+  .stats-badge {
+    font-size: 14px;
+    color: #38bdf8;
+    font-weight: 600;
+  }
+
+  /* 排版預覽區塊 */
+  .preview-wrapper {
+    margin-top: 24px;
+  }
+  .preview-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: #cbd5e1;
+  }
+
+  /* A4 紙張本體 */
+  .a4-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    max-height: 297mm;
+    margin: 20px auto;
+    background: #ffffff;
+    padding: 5mm;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    position: relative;
+    page-break-after: always;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4mm;
+    color: #000;
+  }
+
+  /* 單個訂單格子 (1/4 A4) */
+  .order-cell {
+    border: 1.5px dashed #4b5563;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+    height: 100%;
+  }
+
+  /* 右上角極簡訂單編號標籤 (不佔用版面行高) */
+  .order-num-pill {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid #d1d5db;
+    z-index: 5;
+  }
+
+  /* 訂單內容主體（左右欄位） */
+  .order-body {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  /* 左側：客戶訂單文字（加大字體與行距） */
+  .text-col {
+    flex: 1 1 54%;
+    font-size: 11.8pt;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: #111827;
+    overflow: hidden;
+    font-weight: 550;
+  }
+
+  /* 右側：照片欄（大幅加大圖案） */
+  .img-col {
+    flex: 0 0 46%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 22px; /* 避開右上角標籤 */
+  }
+
+  .order-photo {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #fafafa;
+    cursor: zoom-in;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  
+  .img-col.multi .order-photo {
+    max-height: 115px;
+  }
+  .img-col.triple .order-photo {
+    max-height: 75px;
+  }
+
+  .order-cell.empty {
+    border: 1px dashed #e5e7eb;
+    background: #f9fafb;
+  }
+
+  /* 淡紫色螢光筆標記（針對加購項目） */
+  .hl-addon {
+    background-color: #e9d5ff !important;
+    color: #3b0764 !important;
+    padding: 1.5px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+    display: inline-block;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    border: 1px solid #d8b4fe;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 6mm 6mm;
+  }
+  /* 列印模式：預設縮小 10% (zoom: 90%)，避免邊界裁切或溢出空白頁 */
+  @media print {
+    body {
+      background: none !important;
+      color: #000 !important;
+      zoom: 90% !important; /* 預設縮小 10% (Chrome / Safari / WebKit) */
+      -moz-transform: scale(0.9);
+      -moz-transform-origin: top center;
+    }
+    header, .input-card, .preview-title, .notice-box, .no-print {
+      display: none !important;
+    }
+    .main-container {
+      margin: 0 !important;
+      padding: 0 !important;
+      max-width: 100% !important;
+    }
+    .a4-sheet {
+      margin: 0 auto !important;
+      width: 100% !important;
+      height: 98vh !important;
+      max-height: 98vh !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      page-break-after: always !important;
+      break-after: page !important;
+      gap: 3mm !important;
+    }
+    .hl-addon {
+      background-color: #e9d5ff !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+
+  #lightbox {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+  #lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.5);
+  }
+</style>
+</head>
+<body>
+
+<header class="no-print">
+  <div class="brand">
+    <span class="brand-icon">🍰</span>
+    <div>
+      <div class="brand-title">梧藝營運系統 - 訂單 A4 四模列印產生器</div>
+      <div class="brand-sub">拖入 Pages 檔 ➔ 抓照片與文字 ➔ 價格加總全部去除 ➔ 下載 PDF</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="btn btn-secondary" onclick="loadSampleData()">📋 載入今日範例 (11筆)</button>
+    <button class="btn btn-secondary" onclick="window.print()">🖨️ 瀏覽器列印</button>
+    <button class="btn btn-success" id="btn-download" onclick="downloadPDF()">📥 下載 A4 4模 PDF</button>
+  </div>
+</header>
+
+<div class="main-container">
+  
+  <div class="notice-box no-print">
+    💡 <strong>價格加總已全自動徹底過濾！</strong><br>
+    凡是類似 <code>花束880</code>、<code>插牌55</code>、<code>蠟燭15</code>、<code>保冷袋劑 100</code>、<code>=1830</code> 等價格明細與加總算式，皆已<strong>雙重保險過濾，絕對不會印在工單上</strong>！<br>
+    👉 直接將您的 <strong>.pages 檔案拖入下方藍色大框</strong>，即可 0.1 秒自動抓出全部高畫質照片並完成排版！
+  </div>
+
+  <div class="input-card no-print">
+    <div class="input-header">
+      <span class="input-title">📂 步驟 1：拖入 Pages 檔案（或點擊選取）</span>
+      <input type="file" id="file-input" accept=".pages" style="display: none;" onchange="handleFileSelect(event)" />
+    </div>
+    
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📑</div>
+      <div class="drop-text">拖曳 .pages 檔案到這裡，或點擊此處選取檔案</div>
+      <div class="drop-sub">（自動提取全部蛋糕照片、文字保留至電話行、價格加總徹底清除、加購自動螢光筆）</div>
+    </div>
+
+    <div>
+      <span class="manual-paste-toggle" onclick="togglePasteArea()">點此展開/收合備用文字貼上區</span>
+      <div id="paste-box" class="paste-area" contenteditable="true"></div>
+    </div>
+
+    <div class="action-bar">
+      <span id="stats-info" class="stats-badge">請拖入 .pages 檔案或點擊上方「載入今日範例」...</span>
+      <button class="btn btn-secondary" onclick="clearAll()">🧹 清空重新載入</button>
+    </div>
+  </div>
+
+  <div class="preview-wrapper">
+    <div class="preview-title no-print">
+      <span>📄 步驟 2：A4 4模排版即時預覽（價格加總已清除，加購項目標記淡紫色）</span>
+    </div>
+    <div id="print-content"></div>
+  </div>
+</div>
+
+<div id="lightbox" onclick="this.style.display='none'">
+  <img id="lightbox-img" src="" alt="大圖預覽" />
+</div>
+
+<script>
+function showLightbox(src) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = src;
+  lb.style.display = 'flex';
+}
+
+function togglePasteArea() {
+  const p = document.getElementById('paste-box');
+  p.style.display = (p.style.display === 'block') ? 'none' : 'block';
+}
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', () => {
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    processPagesFile(e.dataTransfer.files[0]);
+  }
+});
+
+function handleFileSelect(event) {
+  if (event.target.files && event.target.files.length > 0) {
+    processPagesFile(event.target.files[0]);
+  }
+}
+
+function decompressSnappy(data) {
+  let pos = 0;
+  let len = 0;
+  let shift = 0;
+  while (pos < data.length) {
+    const b = data[pos++];
+    len |= (b & 0x7f) << shift;
+    if (!(b & 0x80)) break;
+    shift += 7;
+  }
+  const out = [];
+  while (pos < data.length) {
+    const tag = data[pos++];
+    const tagType = tag & 0x03;
+    if (tagType === 0) {
+      let litLen = tag >> 2;
+      if (litLen < 60) {
+        litLen += 1;
+      } else if (litLen === 60) {
+        litLen = data[pos++] + 1;
+      } else if (litLen === 61) {
+        litLen = (data[pos++] | (data[pos++] << 8)) + 1;
+      } else if (litLen === 62) {
+        litLen = (data[pos++] | (data[pos++] << 8) | (data[pos++] << 16)) + 1;
+      } else if (litLen === 63) {
+        litLen = ((data[pos++] | (data[pos++] << 8) | (data[pos++] << 16) | (data[pos++] << 24)) >>> 0) + 1;
+      }
+      for (let i = 0; i < litLen; i++) out.push(data[pos++]);
+    } else if (tagType === 1) {
+      const copyLen = ((tag >> 2) & 0x07) + 4;
+      const offset = ((tag >> 5) << 8) | data[pos++];
+      for (let i = 0; i < copyLen; i++) out.push(out[out.length - offset]);
+    } else if (tagType === 2) {
+      const copyLen = (tag >> 2) + 1;
+      const offset = data[pos++] | (data[pos++] << 8);
+      for (let i = 0; i < copyLen; i++) out.push(out[out.length - offset]);
+    } else if (tagType === 3) {
+      const copyLen = (tag >> 2) + 1;
+      const offset = ((data[pos++] | (data[pos++] << 8) | (data[pos++] << 16) | (data[pos++] << 24)) >>> 0);
+      for (let i = 0; i < copyLen; i++) out.push(out[out.length - offset]);
+    }
+  }
+  return new Uint8Array(out);
+}
+
+function readVarint(data, pos) {
+  let val = 0;
+  let shift = 0;
+  while (pos < data.length) {
+    const b = data[pos++];
+    val |= (b & 0x7f) << shift;
+    if (!(b & 0x80)) break;
+    shift += 7;
+  }
+  return [val, pos];
+}
+
+function parseProtobuf(data, pos = 0, end = null) {
+  if (end === null) end = data.length;
+  const fields = {};
+  while (pos < end) {
+    let tag;
+    [tag, pos] = readVarint(data, pos);
+    const fieldNum = tag >> 3;
+    const wireType = tag & 0x07;
+    let val;
+    if (wireType === 0) [val, pos] = readVarint(data, pos);
+    else if (wireType === 1) { val = data.subarray(pos, pos + 8); pos += 8; }
+    else if (wireType === 2) {
+      let length;
+      [length, pos] = readVarint(data, pos);
+      val = data.subarray(pos, pos + length); pos += length;
+    } else if (wireType === 5) { val = data.subarray(pos, pos + 4); pos += 4; }
+    else break;
+    if (!fields[fieldNum]) fields[fieldNum] = [];
+    fields[fieldNum].push([wireType, val]);
+  }
+  return [fields, pos];
+}
+
+// 價格與加總過濾函數
+function isPriceOrTotalLine(line) {
+  const s = line.trim();
+  if (!s || s === '*') return false;
+
+  // 重要保護：取貨日期、時間、地點、聯絡人、規格等核心資訊，絕非價格加總行！
+  const safeKeys = ['日期', '時間', '地點', '自取', '取貨', '姓名', '電話', 'LINE', 'Line', 'line'];
+  if (safeKeys.some(k => s.includes(k))) return false;
+  if (/^(蛋糕尺寸|蛋糕口味|尺寸[：:]|口味[：:]|題字[：:]|無題字|側面題字)/.test(s)) return false;
+
+  if (/(=|＝|總共|合計|價格是\s*\$)/.test(s)) return true;
+  if (/\d+\s*[\+\-\*\/]\s*\d+/.test(s)) return true;
+  const itemPricePattern = /^(花束|蛋糕|漢堡盒|餐具|蠟燭|保冷[^\d]*|保冰[^\d]*|插牌|提袋|襯紙|加購\$|\d+人餐具|兩人餐具|五人餐具|十人餐具)\s*[:：]?\s*(\$|\d+)/;
+  if (itemPricePattern.test(s)) return true;
+  if (/加購\$\d+/.test(s)) return true;
+  if (/^\$?\d+$/.test(s)) return true;
+  return false;
+}
+
+function standardizeDate(line, defaultYear = '2026') {
+  const s = line.trim();
+  if (!/^(取貨日期|自取日期|日期)[：:]/.test(s)) return line;
+  const parts = s.split(/[：:]/);
+  const val = parts.slice(1).join(':').trim();
+  const mFull = val.match(/(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})/);
+  if (mFull) {
+    const y = parseInt(mFull[1]);
+    const m = String(parseInt(mFull[2])).padStart(2, '0');
+    const d = String(parseInt(mFull[3])).padStart(2, '0');
+    return `取貨日期：${y}-${m}-${d}`;
+  }
+  const mShort = val.match(/(\d{1,2})[-/月](\d{1,2})/);
+  if (mShort) {
+    const m = String(parseInt(mShort[1])).padStart(2, '0');
+    const d = String(parseInt(mShort[2])).padStart(2, '0');
+    return `取貨日期：${defaultYear}-${m}-${d}`;
+  }
+  return line;
+}
+
+function isOrderStarterText(text) {
+  const s = text.trim();
+  if (!s || s === '*') return false;
+  if (isPriceOrTotalLine(s)) return false;
+  const patterns = [/^[1-9]️⃣/, /^[①-⑨]/, /^[1-9]\./, /^加單/, /^圖款/, /^款式/, /包裝花束/, /^💐/, /^蛋糕尺寸/, /^尺寸[：:]/, /^口味[：:]/];
+  return patterns.some(p => p.test(s));
+}
+
+function categorizeLine(line) {
+  const s = line.trim();
+  if (/^(加購|需加購|加提袋|含提袋|提袋[：:])/i.test(s)) return 'addon';
+  if (/^(取貨日期|自取日期|日期[：:]|取貨時間|自取時間|時間[：:]|取貨地點|自取地點|地點|送達地點|外送地址)[：:]?/i.test(s)) return 'pickup';
+  if (/^(訂購人|取貨人)?.*(LINE|姓名|電話)[：:]?/i.test(s)) return 'contact';
+  if (/^[1-9]️⃣/.test(s)) return 'suborder';
+  return 'specs';
+}
+
+function formatOrderSections(items, defaultYear = '2026') {
+  const rawLines = [];
+  let hasDateLine = false;
+  items.forEach(it => {
+    if (it.type === 'line') {
+      let s = it.content.trim();
+      if (s && !isPriceOrTotalLine(s)) {
+        if (/^(取貨日期|自取日期|日期)[：:]/.test(s)) {
+          s = standardizeDate(s, defaultYear);
+          hasDateLine = true;
+        }
+        rawLines.push(s);
+      }
+    }
+  });
+
+  const lines = [];
+  let dateInserted = false;
+  rawLines.forEach(s => {
+    if (!hasDateLine && !dateInserted && /^(取貨時間|自取時間|時間)[：:]/.test(s)) {
+      lines.push(`取貨日期：${defaultYear}-10-28`);
+      dateInserted = true;
+    }
+    lines.push(s);
+  });
+
+  const formattedLines = [];
+  let prevCat = null;
+  lines.forEach(s => {
+    const currCat = categorizeLine(s);
+    if (prevCat !== null && currCat !== prevCat) {
+      if (['addon', 'pickup', 'contact', 'suborder'].includes(currCat)) {
+        formattedLines.push('');
+      }
+    }
+
+    if (/加購[：:]\s*(否|無|不用|沒有)/.test(s)) {
+      formattedLines.push(escapeHtml(s));
+    } else if (s.includes('加購')) {
+      formattedLines.push(`<mark class="hl-addon">${escapeHtml(s)}</mark>`);
+    } else if (/(加提袋|提袋)[：:]\s*(要|有|O|Ｏ|需)/i.test(s)) {
+      formattedLines.push(`<mark class="hl-addon">${escapeHtml(s)}</mark>`);
+    } else {
+      formattedLines.push(escapeHtml(s));
+    }
+
+    prevCat = currCat;
+  });
+
+  return formattedLines.join('\n').trim();
+}
+
+function formatOrderLine(rawLine) {
+  const s = rawLine.trim();
+  if (!s) return '';
+  if (isPriceOrTotalLine(s)) return '';
+  if (/加購[：:]\s*(否|無|不用|沒有)/.test(s)) {
+    return escapeHtml(rawLine);
+  }
+  if (s.includes('加購')) {
+    return `<mark class="hl-addon">${escapeHtml(rawLine)}</mark>`;
+  }
+  if (/(加提袋|提袋)[：:]\s*(要|有|O|Ｏ|需)/i.test(s)) {
+    return `<mark class="hl-addon">${escapeHtml(rawLine)}</mark>`;
+  }
+  return escapeHtml(rawLine);
+}
+
+function extractSummary(items) {
+  let name = '';
+  let timeStr = '';
+  let dateStr = '';
+  items.forEach(it => {
+    if (it.type === 'line') {
+      const l = it.content.trim();
+      if (l.includes('姓名：') || l.includes('姓名:')) name = l.split(/：|:/).pop().trim();
+      else if (!name && (l.includes('LINE名稱：') || l.includes('LINE名稱:'))) name = l.split(/：|:/).pop().trim();
+      if (l.includes('取貨時間：') || l.includes('取貨時間:')) timeStr = l.split(/：|:/).pop().trim();
+      if (l.includes('取貨日期：') || l.includes('取貨日期:')) dateStr = l.split(/：|:/).pop().trim();
+    }
+  });
+  const parts = [];
+  if (dateStr || timeStr) parts.push(`⏰ ${dateStr} ${timeStr}`.trim());
+  if (name) parts.push(`👤 ${name}`);
+  return parts.length ? parts.join(' ｜ ') : '訂單資料';
+}
+
+async function processPagesFile(file) {
+  const stats = document.getElementById('stats-info');
+  stats.innerText = `⏳ 正在讀取並解析：${file.name} ...`;
+
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const zipImages = {};
+    const imgPromises = [];
+    zip.forEach((relativePath, zipEntry) => {
+      if (relativePath.startsWith('Data/') && relativePath.endsWith('.png')) {
+        const m = relativePath.match(/-(\d+)\.png$/);
+        if (m) {
+          const did = parseInt(m[1]);
+          imgPromises.push(
+            zipEntry.async('base64').then(b64 => {
+              zipImages[did] = `data:image/png;base64,${b64}`;
+            })
+          );
+        }
+      }
+    });
+    await Promise.all(imgPromises);
+
+    const docEntry = zip.file('Index/Document.iwa');
+    if (!docEntry) throw new Error('找不到 Document.iwa 資料庫');
+    const rawDoc = await docEntry.async('uint8array');
+
+    let pos = 0;
+    const decDocChunks = [];
+    while (pos < rawDoc.length) {
+      const cl = rawDoc[pos + 1] | (rawDoc[pos + 2] << 8) | (rawDoc[pos + 3] << 16);
+      const chunk = rawDoc.subarray(pos + 4, pos + 4 + cl);
+      decDocChunks.push(decompressSnappy(chunk));
+      pos += 4 + cl;
+    }
+
+    let totalLen = decDocChunks.reduce((acc, c) => acc + c.length, 0);
+    const decDoc = new Uint8Array(totalLen);
+    let offset = 0;
+    for (let c of decDocChunks) {
+      decDoc.set(c, offset);
+      offset += c.length;
+    }
+
+    let p = 0;
+    const archives = [];
+    while (p < decDoc.length) {
+      let hlen;
+      [hlen, p] = readVarint(decDoc, p);
+      const hbytes = decDoc.subarray(p, p + hlen);
+      p += hlen;
+      const [archInfo] = parseProtobuf(hbytes);
+      const aid = (archInfo[1] && archInfo[1][0]) ? archInfo[1][0][1] : null;
+      if (archInfo[2]) {
+        for (let [, mibytes] of archInfo[2]) {
+          const [mi] = parseProtobuf(mibytes);
+          const mType = (mi[1] && mi[1][0]) ? mi[1][0][1] : null;
+          let mLen = (mi[3] && mi[3][0]) ? mi[3][0][1] : null;
+          if (mLen === null && mi[2]) {
+            let lengths = [];
+            for (let [wt, val] of mi[2]) {
+              if (wt === 0) lengths.push(val);
+            }
+            mLen = lengths.reduce((acc, v) => acc + v, 0);
+          }
+          const payload = decDoc.subarray(p, p + mLen);
+          p += mLen;
+          archives.push({ aid, mType, payload });
+        }
+      }
+    }
+
+    const imagesData = [];
+    for (let arch of archives) {
+      if (arch.mType === 3005) {
+        const [f] = parseProtobuf(arch.payload);
+        let did = null;
+        if (f[11] && f[11][0]) {
+          const [df] = parseProtobuf(f[11][0][1]);
+          did = (df[1] && df[1][0]) ? df[1][0][1] : null;
+        }
+        if (did && zipImages[did]) imagesData.push(zipImages[did]);
+      }
+    }
+
+    let storagePayload = null;
+    for (let arch of archives) {
+      if (arch.mType === 2001 && arch.payload.length > 500) {
+        storagePayload = arch.payload; break;
+      }
+    }
+
+    if (!storagePayload) throw new Error('無法找到文字資料庫');
+    const [stF] = parseProtobuf(storagePayload);
+    const textBytes = stF[3][0][1];
+    const text = new TextDecoder('utf-8').decode(textBytes);
+
+    const tokens = [];
+    let imgIdx = 0;
+    let lastPos = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '\ufffc') {
+        if (i > lastPos) tokens.push({ type: 'text', content: text.substring(lastPos, i) });
+        if (imgIdx < imagesData.length) tokens.push({ type: 'image', src: imagesData[imgIdx++] });
+        lastPos = i + 1;
+      }
+    }
+    if (lastPos < text.length) tokens.push({ type: 'text', content: text.substring(lastPos) });
+
+    const stream = [];
+    tokens.forEach(tok => {
+      if (tok.type === 'image') stream.push(tok);
+      else {
+        tok.content.split('\n').forEach(l => stream.push({ type: 'line', content: l }));
+      }
+    });
+
+    const phoneIndices = [];
+    stream.forEach((item, idx) => {
+      if (item.type === 'line') {
+        const s = item.content.trim();
+        if (s.includes('電話') && /\d/.test(s)) phoneIndices.push(idx);
+      }
+    });
+
+    const orders = [];
+    let prevPhoneIdx = -1;
+    for (let i = 0; i < phoneIndices.length; i++) {
+      const phoneIdx = phoneIndices[i];
+      const startSearch = prevPhoneIdx + 1;
+      let orderStartIdx = null;
+
+      for (let j = startSearch; j < phoneIdx; j++) {
+        const it = stream[j];
+        if (it.type === 'image' || isOrderStarterText(it.content)) {
+          orderStartIdx = j; break;
+        }
+      }
+      if (orderStartIdx === null) {
+        for (let j = startSearch; j < phoneIdx; j++) {
+          const it = stream[j];
+          if (it.type === 'image') { orderStartIdx = j; break; }
+          const s = it.content.trim();
+          if (s && s !== '*' && s !== ',' && !/^\d{4}年/.test(s) && !isPriceOrTotalLine(s)) {
+            orderStartIdx = j; break;
+          }
+        }
+      }
+      if (orderStartIdx === null) orderStartIdx = startSearch;
+
+      const rawItems = stream.slice(orderStartIdx, phoneIdx + 1);
+      const cleanItems = rawItems.filter(it => it.type === 'image' || (it.content.trim() !== '*' && !isPriceOrTotalLine(it.content)));
+      orders.push(cleanItems);
+      prevPhoneIdx = phoneIdx;
+    }
+
+    const mYr = file.name.match(/(\d{4})年/);
+    const docYear = mYr ? mYr[1] : '2026';
+    renderOrders(orders, docYear);
+    stats.innerText = `🎉 成功解析 ${file.name}！共 ${orders.length} 筆訂單，所有價格加總已清除，加購處已螢光筆標記！`;
+
+  } catch (err) {
+    console.error(err);
+    alert('解析 Pages 檔案失敗：' + err.message);
+    stats.innerText = '❌ 解析失敗，請確認檔案格式是否為 Pages 文件。';
+  }
+}
+
+function renderOrders(orders, docYear = '2026') {
+  const container = document.getElementById('print-content');
+  const pagesCount = Math.ceil(orders.length / 4);
+
+  let html = '';
+  let globalIdx = 1;
+
+  for (let p = 0; p < pagesCount; p++) {
+    html += `<div class="a4-sheet" id="pdf-page-${p+1}">`;
+    const pageOrders = orders.slice(p * 4, (p + 1) * 4);
+
+    for (let c = 0; c < 4; c++) {
+      if (c < pageOrders.length) {
+        const items = pageOrders[c];
+        const textCombined = formatOrderSections(items, docYear);
+        const images = [];
+
+        items.forEach(it => {
+          if (it.type === 'image') images.push(it.src);
+        });
+
+        let imgClass = '';
+        if (images.length === 2) imgClass = 'multi';
+        else if (images.length >= 3) imgClass = 'triple';
+
+        let imgHtml = '';
+        if (images.length > 0) {
+          imgHtml = `<div class="img-col ${imgClass}">`;
+          images.forEach(src => {
+            imgHtml += `<img src="${src}" class="order-photo" alt="蛋糕照片" onclick="showLightbox(this.src)" />`;
+          });
+          imgHtml += `</div>`;
+        }
+
+        html += `
+  <div class="order-cell" id="order-cell-${globalIdx}">
+    <span class="order-num-pill">#${globalIdx}</span>
+    <div class="order-body">
+      <div class="text-col">${textCombined}</div>
+      {IMG_PLACEHOLDER}
+    </div>
+  </div>`.replace('{IMG_PLACEHOLDER}', imgHtml);
+        globalIdx++;
+      } else {
+        html += `<div class="order-cell empty"></div>`;
+      }
+    }
+    html += `</div>`;
+  }
+
+  container.innerHTML = html;
+  autoFitText();
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function autoFitText() {
+  const cells = document.querySelectorAll('.order-cell:not(.empty)');
+  cells.forEach(cell => {
+    const textCol = cell.querySelector('.text-col');
+    if (!textCol) return;
+    let fontSize = 12.0;
+    textCol.style.fontSize = fontSize + 'pt';
+    textCol.style.lineHeight = '1.42';
+
+    const body = cell.querySelector('.order-body');
+    let attempts = 0;
+    while (textCol.scrollHeight > body.clientHeight && fontSize > 8.5 && attempts < 18) {
+      fontSize -= 0.25;
+      textCol.style.fontSize = fontSize + 'pt';
+      attempts++;
+    }
+  });
+}
+
+function downloadPDF() {
+  const element = document.getElementById('print-content');
+  if (!element || element.children.length === 0) {
+    alert('請先拖入 Pages 檔案或載入訂單！');
+    return;
+  }
+
+  const btn = document.getElementById('btn-download');
+  btn.innerText = '⏳ 正在產生 PDF...';
+  btn.disabled = true;
+
+  const opt = {
+    margin:       [8, 8, 8, 8],
+    filename:     '當天蛋糕訂單_A4四模列印.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    btn.innerText = '📥 下載 A4 4模 PDF';
+    btn.disabled = false;
+  }).catch(err => {
+    console.error(err);
+    alert('產生 PDF 發生問題，建議您改用「🖨️ 瀏覽器列印」按鈕並選擇「另存為 PDF」！');
+    btn.innerText = '📥 下載 A4 4模 PDF';
+    btn.disabled = false;
+  });
+}
+
+function clearAll() {
+  document.getElementById('paste-box').innerHTML = '';
+  document.getElementById('print-content').innerHTML = '';
+  document.getElementById('stats-info').innerText = '已清空，請拖入 .pages 檔案...';
+}
+
+function loadSampleData() {
+  fetch('當天蛋糕訂單_A4四模列印.html')
+    .then(res => res.text())
+    .then(html => {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const sheets = doc.querySelectorAll('.a4-sheet');
+      if (sheets.length > 0) {
+        let contentHtml = '';
+        sheets.forEach(s => contentHtml += s.outerHTML);
+        document.getElementById('print-content').innerHTML = contentHtml;
+        document.getElementById('stats-info').innerText = '✅ 已成功載入今日 11 筆訂單範例（所有價格加總已清除，加購處已螢光筆標記）！';
+        autoFitText();
+      }
+    })
+    .catch(() => {
+      document.getElementById('stats-info').innerText = '請直接拖入 .pages 檔案！';
+    });
+}
+
+window.addEventListener('load', () => {
+  loadSampleData();
+});
+</script>
+</body>
+</html>
