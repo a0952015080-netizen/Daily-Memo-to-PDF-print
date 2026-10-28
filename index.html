@@ -269,16 +269,33 @@
     overflow: hidden;
   }
 
-  /* 左側：客戶訂單文字（加大字體與行距） */
+  /* 左側：客戶訂單文字欄（垂直分佈：頂部資訊在上，底部資訊靠左下） */
   .text-col {
     flex: 1 1 54%;
-    font-size: 11.8pt;
-    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    color: #111827;
+    font-weight: 550;
+    font-size: 11.5pt;
+    line-height: 1.42;
+  }
+
+  /* 上半部：圖款、蛋糕尺寸、蛋糕口味、加購 */
+  .order-top-part {
     white-space: pre-wrap;
     word-break: break-word;
-    color: #111827;
-    overflow: hidden;
-    font-weight: 550;
+  }
+
+  /* 下半部：靠左下對齊（取貨日期、取貨時間、自取地點、訂購人聯絡資訊） */
+  .order-bottom-part {
+    margin-top: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding-top: 6px;
   }
 
   /* 右側：照片欄（大幅加大圖案） */
@@ -578,7 +595,7 @@ function isPriceOrTotalLine(line) {
   return false;
 }
 
-function standardizeDate(line, defaultYear = '2026') {
+function standardizeDate(line, defaultYear = '2026', defaultMonth = '10', defaultDay = '28') {
   const s = line.trim();
   if (!/^(取貨日期|自取日期|日期)[：:]/.test(s)) return line;
   const parts = s.split(/[：:]/);
@@ -586,17 +603,21 @@ function standardizeDate(line, defaultYear = '2026') {
   const mFull = val.match(/(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})/);
   if (mFull) {
     const y = parseInt(mFull[1]);
-    const m = String(parseInt(mFull[2])).padStart(2, '0');
-    const d = String(parseInt(mFull[3])).padStart(2, '0');
-    return `取貨日期：${y}-${m}-${d}`;
+    let m = parseInt(mFull[2]);
+    let d = parseInt(mFull[3]);
+    if (m < 1 || m > 12) m = parseInt(defaultMonth);
+    if (d < 1 || d > 31) d = parseInt(defaultDay);
+    return `取貨日期：${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
   const mShort = val.match(/(\d{1,2})[-/月](\d{1,2})/);
   if (mShort) {
-    const m = String(parseInt(mShort[1])).padStart(2, '0');
-    const d = String(parseInt(mShort[2])).padStart(2, '0');
-    return `取貨日期：${defaultYear}-${m}-${d}`;
+    let m = parseInt(mShort[1]);
+    let d = parseInt(mShort[2]);
+    if (m < 1 || m > 12) m = parseInt(defaultMonth);
+    if (d < 1 || d > 31) d = parseInt(defaultDay);
+    return `取貨日期：${defaultYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
-  return line;
+  return `取貨日期：${defaultYear}-${String(defaultMonth).padStart(2, '0')}-${String(defaultDay).padStart(2, '0')}`;
 }
 
 function isOrderStarterText(text) {
@@ -616,7 +637,7 @@ function categorizeLine(line) {
   return 'specs';
 }
 
-function formatOrderSections(items, defaultYear = '2026') {
+function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', defaultDay = '28') {
   const rawLines = [];
   let hasDateLine = false;
   items.forEach(it => {
@@ -624,7 +645,7 @@ function formatOrderSections(items, defaultYear = '2026') {
       let s = it.content.trim();
       if (s && !isPriceOrTotalLine(s)) {
         if (/^(取貨日期|自取日期|日期)[：:]/.test(s)) {
-          s = standardizeDate(s, defaultYear);
+          s = standardizeDate(s, defaultYear, defaultMonth, defaultDay);
           hasDateLine = true;
         }
         rawLines.push(s);
@@ -636,36 +657,65 @@ function formatOrderSections(items, defaultYear = '2026') {
   let dateInserted = false;
   rawLines.forEach(s => {
     if (!hasDateLine && !dateInserted && /^(取貨時間|自取時間|時間)[：:]/.test(s)) {
-      lines.push(`取貨日期：${defaultYear}-10-28`);
+      lines.push(`取貨日期：${defaultYear}-${String(defaultMonth).padStart(2, '0')}-${String(defaultDay).padStart(2, '0')}`);
       dateInserted = true;
     }
     lines.push(s);
   });
 
-  const formattedLines = [];
+  const topLines = [];
+  const bottomLines = [];
   let prevCat = null;
+  let seenBottom = false;
+
   lines.forEach(s => {
     const currCat = categorizeLine(s);
-    if (prevCat !== null && currCat !== prevCat) {
-      if (['addon', 'pickup', 'contact', 'suborder'].includes(currCat)) {
-        formattedLines.push('');
-      }
+    if (['pickup', 'contact'].includes(currCat)) {
+      seenBottom = true;
     }
 
+    let renderedLine = '';
     if (/加購[：:]\s*(否|無|不用|沒有)/.test(s)) {
-      formattedLines.push(escapeHtml(s));
+      renderedLine = escapeHtml(s);
     } else if (s.includes('加購')) {
-      formattedLines.push(`<mark class="hl-addon">${escapeHtml(s)}</mark>`);
+      renderedLine = `<mark class="hl-addon">${escapeHtml(s)}</mark>`;
     } else if (/(加提袋|提袋)[：:]\s*(要|有|O|Ｏ|需)/i.test(s)) {
-      formattedLines.push(`<mark class="hl-addon">${escapeHtml(s)}</mark>`);
+      renderedLine = `<mark class="hl-addon">${escapeHtml(s)}</mark>`;
     } else {
-      formattedLines.push(escapeHtml(s));
+      renderedLine = escapeHtml(s);
+    }
+
+    if (!seenBottom) {
+      // 上半部：圖款 加 2 行空白 before 蛋糕尺寸
+      if (/^(蛋糕尺寸|尺寸[：:])/.test(s)) {
+        while (topLines.length > 0 && topLines[topLines.length - 1] === '') {
+          topLines.pop();
+        }
+        topLines.push('');
+        topLines.push('');
+      } else if (prevCat !== null && currCat !== prevCat) {
+        if (['addon', 'suborder'].includes(currCat)) {
+          topLines.push('');
+        }
+      }
+      topLines.push(renderedLine);
+    } else {
+      // 下半部（靠左下）
+      if (prevCat !== null && currCat !== prevCat) {
+        if (currCat === 'contact') {
+          bottomLines.push('');
+        }
+      }
+      bottomLines.push(renderedLine);
     }
 
     prevCat = currCat;
   });
 
-  return formattedLines.join('\n').trim();
+  return {
+    top: topLines.join('\n').trim(),
+    bottom: bottomLines.join('\n').trim()
+  };
 }
 
 function formatOrderLine(rawLine) {
@@ -859,9 +909,17 @@ async function processPagesFile(file) {
       prevPhoneIdx = phoneIdx;
     }
 
-    const mYr = file.name.match(/(\d{4})年/);
-    const docYear = mYr ? mYr[1] : '2026';
-    renderOrders(orders, docYear);
+    let docYear = '2026', docMonth = '10', docDay = '29';
+    const mDate = file.name.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    if (mDate) {
+      docYear = mDate[1];
+      docMonth = mDate[2];
+      docDay = mDate[3];
+    } else {
+      const mYr = file.name.match(/(\d{4})年/);
+      if (mYr) docYear = mYr[1];
+    }
+    renderOrders(orders, docYear, docMonth, docDay);
     stats.innerText = `🎉 成功解析 ${file.name}！共 ${orders.length} 筆訂單，所有價格加總已清除，加購處已螢光筆標記！`;
 
   } catch (err) {
@@ -871,7 +929,7 @@ async function processPagesFile(file) {
   }
 }
 
-function renderOrders(orders, docYear = '2026') {
+function renderOrders(orders, docYear = '2026', docMonth = '10', docDay = '28') {
   const container = document.getElementById('print-content');
   const pagesCount = Math.ceil(orders.length / 4);
 
@@ -885,7 +943,7 @@ function renderOrders(orders, docYear = '2026') {
     for (let c = 0; c < 4; c++) {
       if (c < pageOrders.length) {
         const items = pageOrders[c];
-        const textCombined = formatOrderSections(items, docYear);
+        const parts = formatOrderSections(items, docYear, docMonth, docDay);
         const images = [];
 
         items.forEach(it => {
@@ -909,7 +967,10 @@ function renderOrders(orders, docYear = '2026') {
   <div class="order-cell" id="order-cell-${globalIdx}">
     <span class="order-num-pill">#${globalIdx}</span>
     <div class="order-body">
-      <div class="text-col">${textCombined}</div>
+      <div class="text-col">
+        <div class="order-top-part">${parts.top}</div>
+        <div class="order-bottom-part">${parts.bottom}</div>
+      </div>
       {IMG_PLACEHOLDER}
     </div>
   </div>`.replace('{IMG_PLACEHOLDER}', imgHtml);
@@ -934,13 +995,13 @@ function autoFitText() {
   cells.forEach(cell => {
     const textCol = cell.querySelector('.text-col');
     if (!textCol) return;
-    let fontSize = 12.0;
+    let fontSize = 11.5;
     textCol.style.fontSize = fontSize + 'pt';
-    textCol.style.lineHeight = '1.42';
+    textCol.style.lineHeight = '1.40';
 
     const body = cell.querySelector('.order-body');
     let attempts = 0;
-    while (textCol.scrollHeight > body.clientHeight && fontSize > 8.5 && attempts < 18) {
+    while (textCol.scrollHeight > body.clientHeight && fontSize > 8.0 && attempts < 18) {
       fontSize -= 0.25;
       textCol.style.fontSize = fontSize + 'pt';
       attempts++;
