@@ -400,7 +400,7 @@
     border-left: 1px dotted #e5e7eb;
   }
 
-  /* ✂️ 方便撕下聯：左側滿版超大名字，右側雙列維持原大小電話與加購 */
+  /* ✂️ 方便撕下聯：名字緊湊靠左自適應寬度，右側釋放最大空間顯示完整資訊 */
   .memo-slip {
     margin-top: 2px;
     padding-top: 2px;
@@ -443,34 +443,31 @@
     display: flex;
     flex-direction: row;
     align-items: stretch;
-    gap: 6px;
+    gap: 5px;
     overflow: hidden;
   }
 
-  /* 左側滿版大名字區塊：再放大50%（約 13.5pt），醒目滿版置中 */
+  /* 左側大名字區塊：寬度依字數自適應緊湊靠左（不留過多空白），確保右側資訊擁有最大空間 */
   .memo-name-col {
     flex: 0 0 auto;
-    min-width: 38mm;
-    max-width: 44mm;
+    width: auto;
+    max-width: 32mm;
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding-right: 4px;
+    padding-right: 5px;
     border-right: 1px dashed #9ca3af;
     overflow: hidden;
   }
   .memo-name-text {
-    font-size: 13.5pt;
+    font-size: 13pt;
     font-weight: 700;
     color: #000000;
-    letter-spacing: 0.5px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     line-height: 1;
   }
 
-  /* 右側資訊區塊：維持原大小，上下兩列電話、時間與加購 */
+  /* 右側資訊區塊：向左延伸佔滿剩餘寬度，字體自動微縮確保完整呈現不截斷 */
   .memo-info-col {
     flex: 1 1 auto;
     display: flex;
@@ -483,20 +480,26 @@
   .memo-slip-row {
     display: flex;
     flex-direction: row;
-    align-items: center;
-    gap: 2px 6px;
+    align-items: baseline;
+    gap: 3px 8px;
     font-size: 7.2pt;
     line-height: 1.15;
     color: #111827;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .memo-slip-row .memo-item {
     white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .memo-slip-row .memo-item.flex-1 {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .memo-slip-label {
@@ -822,6 +825,11 @@ function isPriceOrTotalLine(line) {
   return false;
 }
 
+function cleanPickupTime(timeStr) {
+  if (!timeStr) return '';
+  return timeStr.replace(/[（\(]\s*3(?::00)?\s*(?:pm|點)?\s*[~～\-—]\s*7(?::00)?\s*(?:pm|點)?\s*[）\)]/gi, '').trim();
+}
+
 function standardizeDate(line, defaultYear = '2026', defaultMonth = '10', defaultDay = '28') {
   const s = line.trim();
   if (!/^(取貨日期|自取日期|日期)[：:]/.test(s)) return line;
@@ -887,7 +895,14 @@ function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', d
       lines.push(`取貨日期：${defaultYear}-${String(defaultMonth).padStart(2, '0')}-${String(defaultDay).padStart(2, '0')}`);
       dateInserted = true;
     }
-    lines.push(s);
+    if (/^(取貨時間|自取時間|時間)[：:]/.test(s)) {
+      const parts = s.split(/[：:]/);
+      const prefix = parts[0];
+      const val = parts.slice(1).join(':').trim();
+      lines.push(`${prefix}：${cleanPickupTime(val)}`);
+    } else {
+      lines.push(s);
+    }
   });
 
   const topLines = [];
@@ -988,14 +1003,15 @@ function extractSlipInfo(items) {
   items.forEach(it => {
     if (it.type === 'line') {
       const s = it.content.trim();
-      if (/(LINE|Line|line)名稱[：:]/.test(s)) {
+      if (/(LINE|Line|line)\s*(使用者)?\s*名稱[：:]/i.test(s)) {
         lineName = s.split(/[：:]/).slice(1).join(':').trim();
       } else if (/(訂購人|取貨人)?姓名[：:]/.test(s)) {
         custName = s.split(/[：:]/).slice(1).join(':').trim();
       } else if (/(訂購人|取貨人)?電話[：:]/.test(s)) {
         custPhone = s.split(/[：:]/).slice(1).join(':').trim();
       } else if (/^(取貨時間|自取時間|時間)[：:]/.test(s)) {
-        pickupTime = s.split(/[：:]/).slice(1).join(':').trim();
+        const rawTime = s.split(/[：:]/).slice(1).join(':').trim();
+        pickupTime = cleanPickupTime(rawTime);
       } else if (/^(加購|需加購)[：:]/.test(s)) {
         const val = s.split(/[：:]/).slice(1).join(':').trim();
         if (!/^(否|無|不用|沒有)$/.test(val)) {
@@ -1232,8 +1248,9 @@ function renderOrders(orders, docYear = '2026', docMonth = '10', docDay = '28') 
 
         const slip = extractSlipInfo(items);
         const addonClass = slip.addonItems !== '無' ? 'addon' : '';
-        const lineDisplay = slip.lineName !== '無' ? `LINE: ${escapeHtml(slip.lineName)}` : '';
+        const prominentLineName = slip.lineName !== '無' ? slip.lineName : slip.custName;
         const phoneDisplay = escapeHtml(slip.custPhone);
+        const nameDisplay = escapeHtml(slip.custName);
         const slipHtml = `
     <div class="memo-slip">
       <div class="memo-slip-cut-line">
@@ -1243,12 +1260,12 @@ function renderOrders(orders, docYear = '2026', docMonth = '10', docDay = '28') 
       </div>
       <div class="memo-slip-box">
         <div class="memo-name-col">
-          <span class="memo-name-text">${escapeHtml(slip.custName)}</span>
+          <span class="memo-name-text">${escapeHtml(prominentLineName)}</span>
         </div>
         <div class="memo-info-col">
           <div class="memo-slip-row">
+            <span class="memo-item"><span class="memo-slip-label">姓名：</span><span class="memo-slip-val">${nameDisplay}</span></span>
             <span class="memo-item"><span class="memo-slip-label">電話：</span><span class="memo-slip-val">${phoneDisplay}</span></span>
-            ${lineDisplay ? `<span class="memo-item"><span class="memo-slip-val" style="color:#6b7280;">(${lineDisplay})</span></span>` : ''}
           </div>
           <div class="memo-slip-row">
             <span class="memo-item"><span class="memo-slip-label">時間：</span><span class="memo-slip-val">${escapeHtml(slip.pickupTime)}</span></span>
@@ -1292,17 +1309,30 @@ function autoFitText() {
   cells.forEach(cell => {
     const specsCol = cell.querySelector('.order-specs-col');
     const topArea = cell.querySelector('.order-top-area');
-    if (!specsCol || !topArea) return;
-    
-    let fontSize = 10.8;
-    specsCol.style.fontSize = fontSize + 'pt';
-    specsCol.style.lineHeight = '1.38';
-
-    let attempts = 0;
-    while (specsCol.scrollHeight > topArea.clientHeight && fontSize > 7.5 && attempts < 20) {
-      fontSize -= 0.25;
+    if (specsCol && topArea) {
+      let fontSize = 11.0;
       specsCol.style.fontSize = fontSize + 'pt';
-      attempts++;
+      specsCol.style.lineHeight = '1.38';
+
+      let attempts = 0;
+      while (specsCol.scrollHeight > topArea.clientHeight && fontSize > 8.0 && attempts < 20) {
+        fontSize -= 0.25;
+        specsCol.style.fontSize = fontSize + 'pt';
+        attempts++;
+      }
+    }
+
+    // 自動微調便條紙資訊欄字體大小，確保內容（加購、電話等）完整顯示
+    const infoCol = cell.querySelector('.memo-info-col');
+    if (infoCol) {
+      const rows = infoCol.querySelectorAll('.memo-slip-row');
+      rows.forEach(row => {
+        let fs = 7.2;
+        while (row.scrollWidth > infoCol.clientWidth + 0.5 && fs > 5.0) {
+          fs -= 0.15;
+          row.style.fontSize = fs.toFixed(2) + 'pt';
+        }
+      });
     }
   });
 }
