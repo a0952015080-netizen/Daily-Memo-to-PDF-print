@@ -211,134 +211,319 @@
     color: #cbd5e1;
   }
 
-  /* A4 紙張本體 */
+  /* A4 紙張本體：精確 A4 (210mm x 297mm) 四等份網格 */
   .a4-sheet {
     width: 210mm;
-    min-height: 297mm;
+    height: 297mm;
+    max-width: 210mm;
     max-height: 297mm;
+    min-height: 297mm;
     margin: 20px auto;
     background: #ffffff;
-    padding: 5mm;
+    padding: 0;
     box-shadow: 0 8px 30px rgba(0,0,0,0.5);
     position: relative;
     page-break-after: always;
+    break-after: page;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 4mm;
-    color: #000;
+    grid-template-columns: 105mm 105mm;
+    grid-template-rows: 148.5mm 148.5mm;
+    box-sizing: border-box;
+    overflow: hidden;
+    color: #1f2937;
+    font-weight: 400;
   }
 
-  /* 單個訂單格子 (1/4 A4) */
+  /* 單個訂單格子 (佔 1/4 A4，剛好 105mm x 148.5mm，內部四等份裁切虛線連成直線) */
   .order-cell {
-    border: 1.5px dashed #4b5563;
-    border-radius: 6px;
-    padding: 8px 10px;
+    width: 105mm;
+    height: 148.5mm;
+    max-width: 105mm;
+    max-height: 148.5mm;
+    min-width: 105mm;
+    min-height: 148.5mm;
+    box-sizing: border-box;
+    padding: 6mm 7mm 4mm 7mm;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     position: relative;
     overflow: hidden;
     background: #ffffff;
-    height: 100%;
+    border: none;
   }
 
-  /* 右上角極簡訂單編號標籤 (不佔用版面行高) */
+  /* A4 象限邊框：左邊與右邊、上面與下面各呈完美貫通的水平與垂直直線 */
+  .order-cell.cell-top-left {
+    border-right: 1.2px dashed #6b7280;
+    border-bottom: 1.2px dashed #6b7280;
+  }
+  .order-cell.cell-top-right {
+    border-bottom: 1.2px dashed #6b7280;
+  }
+  .order-cell.cell-bottom-left {
+    border-right: 1.2px dashed #6b7280;
+  }
+  .order-cell.cell-bottom-right {
+    border: none;
+  }
+
+  .order-cell.empty {
+    background: #fafafa;
+  }
+
+  /* 右上角極簡訂單編號標籤 (非粗體) */
   .order-num-pill {
     position: absolute;
-    top: 7px;
-    right: 8px;
+    top: 5mm;
+    right: 6mm;
     background: #f3f4f6;
-    color: #374151;
+    color: #4b5563;
     font-size: 11px;
-    font-weight: 700;
-    padding: 2px 7px;
+    font-weight: 500;
+    padding: 1.5px 6px;
     border-radius: 4px;
     border: 1px solid #d1d5db;
     z-index: 5;
   }
 
-  /* 訂單內容主體（左右欄位） */
-  .order-body {
+  /* 訂單主內容區域（包含上半部圖款/口味與右側照片） */
+  .order-top-area {
     display: flex;
     flex-direction: row;
     gap: 8px;
     flex: 1;
     min-height: 0;
-    height: 100%;
     overflow: hidden;
   }
 
-  /* 左側：客戶訂單文字欄（垂直分佈：頂部資訊在上，底部資訊靠左下） */
-  .text-col {
+  /* 左側上半部：圖款、蛋糕尺寸、蛋糕口味、加購 */
+  .order-specs-col {
     flex: 1 1 54%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
     height: 100%;
     min-height: 0;
     overflow: hidden;
+    color: #1f2937;
+    font-weight: 400;
+    font-size: 11pt;
+    line-height: 1.38;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* 重點蛋糕口味：顯著放大好辨識 */
+  .spec-flavor {
+    font-size: 12.8pt;
+    font-weight: 600;
     color: #111827;
-    font-weight: 550;
+    background-color: #fef3c7;
+    border-left: 3px solid #f59e0b;
+    padding: 2px 5px;
+    margin: 2px 0;
+    border-radius: 2px;
+    line-height: 1.32;
+    display: block;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  /* 蛋糕尺寸行 */
+  .spec-size {
     font-size: 11.5pt;
-    line-height: 1.42;
+    font-weight: 500;
+    color: #111827;
+    display: block;
   }
 
-  /* 上半部：圖款、蛋糕尺寸、蛋糕口味、加購 */
-  .order-top-part {
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
-  /* 下半部：靠左下對齊（取貨日期、取貨時間、自取地點、訂購人聯絡資訊） */
-  .order-bottom-part {
-    margin-top: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    padding-top: 6px;
-  }
-
-  /* 右側：照片欄（大幅加大圖案） */
+  /* 右側：照片欄 */
   .img-col {
     flex: 0 0 46%;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 22px; /* 避開右上角標籤 */
+    padding-top: 18px; /* 避開右上角標籤 */
   }
 
   .order-photo {
     width: 100%;
-    max-height: 220px;
+    max-height: 155px;
     object-fit: contain;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border-radius: 5px;
     background: #fafafa;
     cursor: zoom-in;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   }
-  
   .img-col.multi .order-photo {
-    max-height: 115px;
+    max-height: 85px;
   }
   .img-col.triple .order-photo {
-    max-height: 75px;
+    max-height: 55px;
   }
 
-  .order-cell.empty {
-    border: 1px dashed #e5e7eb;
-    background: #f9fafb;
+  /* 下半部：取貨資訊（左下）與 訂購人資訊（右下）橫向雙欄佈局（維持適中小字體，不放大） */
+  .order-bottom-area {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 8px;
+    padding-top: 4px;
+    padding-bottom: 2px;
+    margin-top: auto;
+    font-size: 9pt;
+    line-height: 1.32;
+    color: #374151;
+    font-weight: 400;
   }
 
-  /* 淡紫色螢光筆標記（針對加購項目） */
+  /* 左下角：取貨日期、取貨時間、自取地點 */
+  .bottom-pickup-col {
+    flex: 1 1 52%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: left;
+  }
+
+  /* 右下角：訂購人LINE名稱、姓名、電話 */
+  .bottom-contact-col {
+    flex: 1 1 48%;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-align: left;
+    padding-left: 4px;
+    border-left: 1px dotted #e5e7eb;
+  }
+
+  /* ✂️ 方便撕下聯：左側滿版超大名字，右側雙列維持原大小電話與加購 */
+  .memo-slip {
+    margin-top: 2px;
+    padding-top: 2px;
+    height: 14mm;
+    max-height: 14mm;
+    min-height: 14mm;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .memo-slip-cut-line {
+    height: 2.8mm;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 7.2pt;
+    font-weight: 400;
+    color: #6b7280;
+    line-height: 1;
+    margin-bottom: 0.5mm;
+    flex-shrink: 0;
+  }
+  .cut-line-dashed {
+    flex: 1;
+    border-bottom: 1px dashed #9ca3af;
+  }
+
+  .memo-slip-box {
+    height: 10.7mm;
+    max-height: 10.7mm;
+    min-height: 10.7mm;
+    box-sizing: border-box;
+    border: 1.2px solid #374151;
+    border-radius: 3px;
+    padding: 1px 4px;
+    background: #ffffff;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 6px;
+    overflow: hidden;
+  }
+
+  /* 左側滿版大名字區塊：再放大50%（約 13.5pt），醒目滿版置中 */
+  .memo-name-col {
+    flex: 0 0 auto;
+    min-width: 38mm;
+    max-width: 44mm;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-right: 4px;
+    border-right: 1px dashed #9ca3af;
+    overflow: hidden;
+  }
+  .memo-name-text {
+    font-size: 13.5pt;
+    font-weight: 700;
+    color: #000000;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+  }
+
+  /* 右側資訊區塊：維持原大小，上下兩列電話、時間與加購 */
+  .memo-info-col {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .memo-slip-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px 6px;
+    font-size: 7.2pt;
+    line-height: 1.15;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .memo-slip-row .memo-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .memo-slip-label {
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 7.2pt;
+  }
+  .memo-slip-val {
+    font-weight: 400;
+    color: #111827;
+    font-size: 7.2pt;
+  }
+
+  .memo-slip-val.addon {
+    color: #581c87;
+    background-color: #f3e8ff;
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  /* 淡紫色螢光筆標記（針對加購項目，非粗體） */
   .hl-addon {
     background-color: #e9d5ff !important;
     color: #3b0764 !important;
-    padding: 1.5px 5px;
-    border-radius: 4px;
-    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
     display: inline-block;
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
@@ -346,17 +531,19 @@
   }
 
   @page {
-    size: A4 portrait;
-    margin: 6mm 6mm;
+    size: 210mm 297mm;
+    margin: 0;
   }
-  /* 列印模式：預設縮小 10% (zoom: 90%)，避免邊界裁切或溢出空白頁 */
+  /* 列印模式：精確四等份 (105mm x 148.5mm) 十字正交虛線一刀切 */
   @media print {
-    body {
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
       background: none !important;
-      color: #000 !important;
-      zoom: 90% !important; /* 預設縮小 10% (Chrome / Safari / WebKit) */
-      -moz-transform: scale(0.9);
-      -moz-transform-origin: top center;
+      color: #1f2937 !important;
+      width: 210mm !important;
+      height: auto !important;
+      font-weight: 400 !important;
     }
     header, .input-card, .preview-title, .notice-box, .no-print {
       display: none !important;
@@ -367,15 +554,55 @@
       max-width: 100% !important;
     }
     .a4-sheet {
-      margin: 0 auto !important;
-      width: 100% !important;
-      height: 98vh !important;
-      max-height: 98vh !important;
+      width: 210mm !important;
+      height: 297mm !important;
+      max-width: 210mm !important;
+      max-height: 297mm !important;
+      min-height: 297mm !important;
+      margin: 0 !important;
       padding: 0 !important;
       box-shadow: none !important;
       page-break-after: always !important;
       break-after: page !important;
-      gap: 3mm !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      display: grid !important;
+      grid-template-columns: 105mm 105mm !important;
+      grid-template-rows: 148.5mm 148.5mm !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+    .a4-sheet:last-of-type {
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+    .order-cell {
+      width: 105mm !important;
+      height: 148.5mm !important;
+      max-width: 105mm !important;
+      max-height: 148.5mm !important;
+      min-width: 105mm !important;
+      min-height: 148.5mm !important;
+      box-sizing: border-box !important;
+      padding: 6mm 7mm 4mm 7mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      position: relative !important;
+      overflow: hidden !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    .order-cell.empty {
+      width: 105mm !important;
+      height: 148.5mm !important;
+      max-width: 105mm !important;
+      max-height: 148.5mm !important;
+      min-width: 105mm !important;
+      min-height: 148.5mm !important;
+      box-sizing: border-box !important;
+      padding: 6mm 7mm 4mm 7mm !important;
+      background: #fafafa !important;
     }
     .hl-addon {
       background-color: #e9d5ff !important;
@@ -664,18 +891,19 @@ function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', d
   });
 
   const topLines = [];
-  const bottomLines = [];
+  const pickupLines = [];
+  const contactLines = [];
   let prevCat = null;
-  let seenBottom = false;
 
   lines.forEach(s => {
     const currCat = categorizeLine(s);
-    if (['pickup', 'contact'].includes(currCat)) {
-      seenBottom = true;
-    }
 
     let renderedLine = '';
-    if (/加購[：:]\s*(否|無|不用|沒有)/.test(s)) {
+    if (/^(蛋糕口味|口味)[：:]/.test(s)) {
+      renderedLine = `<div class="spec-flavor">${escapeHtml(s)}</div>`;
+    } else if (/^(蛋糕尺寸|尺寸)[：:]/.test(s)) {
+      renderedLine = `<div class="spec-size">${escapeHtml(s)}</div>`;
+    } else if (/加購[：:]\s*(否|無|不用|沒有)/.test(s)) {
       renderedLine = escapeHtml(s);
     } else if (s.includes('加購')) {
       renderedLine = `<mark class="hl-addon">${escapeHtml(s)}</mark>`;
@@ -685,7 +913,11 @@ function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', d
       renderedLine = escapeHtml(s);
     }
 
-    if (!seenBottom) {
+    if (currCat === 'pickup') {
+      pickupLines.push(renderedLine);
+    } else if (currCat === 'contact') {
+      contactLines.push(renderedLine);
+    } else {
       // 上半部：圖款 加 2 行空白 before 蛋糕尺寸
       if (/^(蛋糕尺寸|尺寸[：:])/.test(s)) {
         while (topLines.length > 0 && topLines[topLines.length - 1] === '') {
@@ -699,14 +931,6 @@ function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', d
         }
       }
       topLines.push(renderedLine);
-    } else {
-      // 下半部（靠左下）
-      if (prevCat !== null && currCat !== prevCat) {
-        if (currCat === 'contact') {
-          bottomLines.push('');
-        }
-      }
-      bottomLines.push(renderedLine);
     }
 
     prevCat = currCat;
@@ -714,7 +938,8 @@ function formatOrderSections(items, defaultYear = '2026', defaultMonth = '10', d
 
   return {
     top: topLines.join('\n').trim(),
-    bottom: bottomLines.join('\n').trim()
+    pickup: pickupLines.join('\n').trim(),
+    contact: contactLines.join('\n').trim()
   };
 }
 
@@ -751,6 +976,46 @@ function extractSummary(items) {
   if (dateStr || timeStr) parts.push(`⏰ ${dateStr} ${timeStr}`.trim());
   if (name) parts.push(`👤 ${name}`);
   return parts.length ? parts.join(' ｜ ') : '訂單資料';
+}
+
+function extractSlipInfo(items) {
+  let lineName = '';
+  let custName = '';
+  let custPhone = '';
+  let pickupTime = '';
+  const addonItems = [];
+
+  items.forEach(it => {
+    if (it.type === 'line') {
+      const s = it.content.trim();
+      if (/(LINE|Line|line)名稱[：:]/.test(s)) {
+        lineName = s.split(/[：:]/).slice(1).join(':').trim();
+      } else if (/(訂購人|取貨人)?姓名[：:]/.test(s)) {
+        custName = s.split(/[：:]/).slice(1).join(':').trim();
+      } else if (/(訂購人|取貨人)?電話[：:]/.test(s)) {
+        custPhone = s.split(/[：:]/).slice(1).join(':').trim();
+      } else if (/^(取貨時間|自取時間|時間)[：:]/.test(s)) {
+        pickupTime = s.split(/[：:]/).slice(1).join(':').trim();
+      } else if (/^(加購|需加購)[：:]/.test(s)) {
+        const val = s.split(/[：:]/).slice(1).join(':').trim();
+        if (!/^(否|無|不用|沒有)$/.test(val)) {
+          addonItems.push(val);
+        }
+      } else if (/^(加提袋|提袋)[：:]\s*(要|有|O|Ｏ|需|\d+)/i.test(s)) {
+        const val = s.split(/[：:]/).slice(1).join(':').trim();
+        addonItems.push(`提袋:${val}`);
+      }
+    }
+  });
+
+  const addonsStr = addonItems.length ? addonItems.join('、') : '無';
+  return {
+    lineName: lineName || '無',
+    custName: custName || '未填',
+    custPhone: custPhone || '未填',
+    pickupTime: pickupTime || '未填',
+    addonItems: addonsStr
+  };
 }
 
 async function processPagesFile(file) {
@@ -936,11 +1201,13 @@ function renderOrders(orders, docYear = '2026', docMonth = '10', docDay = '28') 
   let html = '';
   let globalIdx = 1;
 
+  const quadrantClasses = ['cell-top-left', 'cell-top-right', 'cell-bottom-left', 'cell-bottom-right'];
   for (let p = 0; p < pagesCount; p++) {
     html += `<div class="a4-sheet" id="pdf-page-${p+1}">`;
     const pageOrders = orders.slice(p * 4, (p + 1) * 4);
 
     for (let c = 0; c < 4; c++) {
+      const quadClass = quadrantClasses[c];
       if (c < pageOrders.length) {
         const items = pageOrders[c];
         const parts = formatOrderSections(items, docYear, docMonth, docDay);
@@ -963,20 +1230,50 @@ function renderOrders(orders, docYear = '2026', docMonth = '10', docDay = '28') 
           imgHtml += `</div>`;
         }
 
-        html += `
-  <div class="order-cell" id="order-cell-${globalIdx}">
-    <span class="order-num-pill">#${globalIdx}</span>
-    <div class="order-body">
-      <div class="text-col">
-        <div class="order-top-part">${parts.top}</div>
-        <div class="order-bottom-part">${parts.bottom}</div>
+        const slip = extractSlipInfo(items);
+        const addonClass = slip.addonItems !== '無' ? 'addon' : '';
+        const lineDisplay = slip.lineName !== '無' ? `LINE: ${escapeHtml(slip.lineName)}` : '';
+        const phoneDisplay = escapeHtml(slip.custPhone);
+        const slipHtml = `
+    <div class="memo-slip">
+      <div class="memo-slip-cut-line">
+        <span class="cut-line-icon">✂️</span>
+        <span class="cut-line-text">方便撕下聯</span>
+        <span class="cut-line-dashed"></span>
       </div>
+      <div class="memo-slip-box">
+        <div class="memo-name-col">
+          <span class="memo-name-text">${escapeHtml(slip.custName)}</span>
+        </div>
+        <div class="memo-info-col">
+          <div class="memo-slip-row">
+            <span class="memo-item"><span class="memo-slip-label">電話：</span><span class="memo-slip-val">${phoneDisplay}</span></span>
+            ${lineDisplay ? `<span class="memo-item"><span class="memo-slip-val" style="color:#6b7280;">(${lineDisplay})</span></span>` : ''}
+          </div>
+          <div class="memo-slip-row">
+            <span class="memo-item"><span class="memo-slip-label">時間：</span><span class="memo-slip-val">${escapeHtml(slip.pickupTime)}</span></span>
+            <span class="memo-item flex-1"><span class="memo-slip-label">加購：</span><span class="memo-slip-val ${addonClass}">${escapeHtml(slip.addonItems)}</span></span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+        html += `
+  <div class="order-cell ${quadClass}" id="order-cell-${globalIdx}">
+    <span class="order-num-pill">#${globalIdx}</span>
+    <div class="order-top-area">
+      <div class="order-specs-col">${parts.top}</div>
       {IMG_PLACEHOLDER}
     </div>
+    <div class="order-bottom-area">
+      <div class="bottom-pickup-col">${parts.pickup}</div>
+      <div class="bottom-contact-col">${parts.contact}</div>
+    </div>
+    ${slipHtml}
   </div>`.replace('{IMG_PLACEHOLDER}', imgHtml);
         globalIdx++;
       } else {
-        html += `<div class="order-cell empty"></div>`;
+        html += `<div class="order-cell empty ${quadClass}"></div>`;
       }
     }
     html += `</div>`;
@@ -993,17 +1290,18 @@ function escapeHtml(str) {
 function autoFitText() {
   const cells = document.querySelectorAll('.order-cell:not(.empty)');
   cells.forEach(cell => {
-    const textCol = cell.querySelector('.text-col');
-    if (!textCol) return;
-    let fontSize = 11.5;
-    textCol.style.fontSize = fontSize + 'pt';
-    textCol.style.lineHeight = '1.40';
+    const specsCol = cell.querySelector('.order-specs-col');
+    const topArea = cell.querySelector('.order-top-area');
+    if (!specsCol || !topArea) return;
+    
+    let fontSize = 10.8;
+    specsCol.style.fontSize = fontSize + 'pt';
+    specsCol.style.lineHeight = '1.38';
 
-    const body = cell.querySelector('.order-body');
     let attempts = 0;
-    while (textCol.scrollHeight > body.clientHeight && fontSize > 8.0 && attempts < 18) {
+    while (specsCol.scrollHeight > topArea.clientHeight && fontSize > 7.5 && attempts < 20) {
       fontSize -= 0.25;
-      textCol.style.fontSize = fontSize + 'pt';
+      specsCol.style.fontSize = fontSize + 'pt';
       attempts++;
     }
   });
@@ -1021,7 +1319,7 @@ function downloadPDF() {
   btn.disabled = true;
 
   const opt = {
-    margin:       [8, 8, 8, 8],
+    margin:       0,
     filename:     '當天蛋糕訂單_A4四模列印.pdf',
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { scale: 2, useCORS: true, logging: false },
