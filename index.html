@@ -534,11 +534,15 @@
   }
 
   @page {
-    size: 210mm 297mm;
-    margin: 0;
+    size: A4 portrait;
+    margin: 0 !important;
   }
   /* 列印模式：精確四等份 (105mm x 148.5mm) 十字正交虛線一刀切 */
   @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0 !important;
+    }
     html, body {
       margin: 0 !important;
       padding: 0 !important;
@@ -642,9 +646,12 @@
       <div class="brand-sub">拖入 Pages 檔 ➔ 抓照片與文字 ➔ 價格加總全部去除 ➔ 下載 PDF</div>
     </div>
   </div>
-  <div class="top-actions">
+  <div class="top-actions" style="display:flex; align-items:center; gap:12px;">
+    <span style="font-size:12px; color:#fbbf24; background:rgba(251,191,36,0.15); padding:6px 12px; border-radius:6px; border:1px solid rgba(251,191,36,0.3); display:inline-flex; align-items:center;">
+      💡 列印提示：列印視窗請「取消勾選 頁首與頁尾」，即可隱藏標題與網址，確保 4 格完全滿版且四等份絕對等大！
+    </span>
     <button class="btn btn-secondary" onclick="loadSampleData()">📋 載入今日範例 (11筆)</button>
-    <button class="btn btn-secondary" onclick="window.print()">🖨️ 瀏覽器列印</button>
+    <button class="btn btn-primary" onclick="printClean()">🖨️ 瀏覽器列印 (A4 4模)</button>
     <button class="btn btn-success" id="btn-download" onclick="downloadPDF()">📥 下載 A4 4模 PDF</button>
   </div>
 </header>
@@ -1373,6 +1380,15 @@ function clearAll() {
   document.getElementById('stats-info').innerText = '已清空，請拖入 .pages 檔案...';
 }
 
+function printClean() {
+  const origTitle = document.title;
+  document.title = ""; // 清空 title，確保部分瀏覽器不會印出頁首標題
+  window.print();
+  setTimeout(() => {
+    document.title = origTitle;
+  }, 1000);
+}
+
 function loadSampleData() {
   fetch('當天蛋糕訂單_A4四模列印.html')
     .then(res => res.text())
@@ -1399,3 +1415,4 @@ window.addEventListener('load', () => {
 </script>
 </body>
 </html>
+
